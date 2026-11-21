@@ -1,8 +1,8 @@
 
-import sqlite3
-from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 from gemini_client import ask_gemini
+from database import get_connection
+
 
 
 # Create MCP server
@@ -41,16 +41,6 @@ def chat_with_ai(message: str) -> str:
     except Exception as e:
         return f"AI Error: {str(e)}"
 
-# Database path
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "data" / "assistant.db"
-
-
-# Database connection function
-def get_connection():
-    return sqlite3.connect(DB_PATH)
-
-
 #----------------------||TASK MANAGEMENT ||-----------------------------
 
 # Tool 1: Add a new task
@@ -68,11 +58,11 @@ def add_task(title: str, description: str = "") -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "INSERT INTO tasks (title, description) VALUES (?, ?)",
+            "INSERT INTO tasks (title, description) VALUES (%s, %s) RETURNING id",
             (title.strip(), description.strip())
         )
 
-        task_id = cursor.lastrowid
+        task_id = cursor.fetchone()["id"]
         connection.commit()
 
         return (
@@ -129,7 +119,10 @@ def get_tasks() -> str:
         result = "Your Saved Tasks:\n\n"
 
         for task in tasks:
-            task_id, title, description, status = task
+            task_id = task["id"]
+            title = task["title"]
+            description = task["description"]
+            status = task["status"]
 
             result += (
                 f"ID: {task_id}\n"
@@ -172,7 +165,7 @@ def update_task_status(task_id: int, status: str) -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "UPDATE tasks SET status = ? WHERE id = ?",
+            "UPDATE tasks SET status = %s WHERE id = %s",
             (status, task_id)
         )
 
@@ -229,7 +222,7 @@ def delete_task(task_id: int) -> str:
 
         # Check whether the task exists
         cursor.execute(
-            "SELECT title FROM tasks WHERE id = ?",
+            "SELECT title FROM tasks WHERE id = %s",
             (task_id,)
         )
 
@@ -240,7 +233,7 @@ def delete_task(task_id: int) -> str:
 
         # Delete the task
         cursor.execute(
-            "DELETE FROM tasks WHERE id = ?",
+            "DELETE FROM tasks WHERE id = %s",
             (task_id,)
         )
 
@@ -248,7 +241,7 @@ def delete_task(task_id: int) -> str:
 
         return (
             f"Task deleted successfully! "
-            f"Task ID: {task_id}, Title: {task[0]}"
+            f"Task ID: {task_id}, Title: {task['title']}"
         )
 
     except Exception as e:
@@ -313,7 +306,7 @@ def update_task(
 
         # Check whether the task exists
         cursor.execute(
-            "SELECT id FROM tasks WHERE id = ?",
+            "SELECT id FROM tasks WHERE id = %s",
             (task_id,)
         )
 
@@ -326,8 +319,8 @@ def update_task(
         cursor.execute(
             """
             UPDATE tasks
-            SET title = ?, description = ?
-            WHERE id = ?
+            SET title = %s, description = %s
+            WHERE id = %s
             """,
             (title.strip(), description.strip(), task_id)
         )
@@ -368,11 +361,11 @@ def add_note(title: str, content: str) -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "INSERT INTO notes (title, content) VALUES (?, ?)",
+            "INSERT INTO notes (title, content) VALUES (%s, %s) RETURNING id",
             (title.strip(), content.strip())
         )
 
-        note_id = cursor.lastrowid
+        note_id = cursor.fetchone()["id"]
         connection.commit()
 
         return (
@@ -418,10 +411,10 @@ def get_notes() -> str:
 
         for note in notes:
             result += (
-                f"Note ID: {note[0]}\n"
-                f"Title: {note[1]}\n"
-                f"Content: {note[2]}\n"
-                f"Created At: {note[3]}\n"
+                f"Note ID: {note['id']}\n"
+                f"Title: {note['title']}\n"
+                f"Content: {note['content']}\n"
+                f"Created At: {note['created_at']}\n"
                 "-------------------------\n"
             )
 
@@ -456,7 +449,7 @@ def update_note(note_id: int, title: str, content: str) -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "UPDATE notes SET title = ?, content = ? WHERE id = ?",
+            "UPDATE notes SET title = %s, content = %s WHERE id = %s",
             (title.strip(), content.strip(), note_id)
         )
 
@@ -498,7 +491,7 @@ def delete_note(note_id: int) -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "DELETE FROM notes WHERE id = ?",
+            "DELETE FROM notes WHERE id = %s",
             (note_id,)
         )
 
@@ -519,27 +512,6 @@ def delete_note(note_id: int) -> str:
         if connection:
             connection.close()
 
-@mcp.tool()
-def delete_note(note_id: int) -> str:
-    """Delete a note using its ID."""
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        "DELETE FROM notes WHERE id = ?",
-        (note_id,)
-    )
-
-    connection.commit()
-
-    if cursor.rowcount == 0:
-        connection.close()
-        return f"No note found with ID {note_id}."
-
-    connection.close()
-
-    return f"Note {note_id} deleted successfully!"
 
 def delete_note_for_gemini(note_id: int) -> str:
     """Request confirmation before deleting a note."""
@@ -600,12 +572,13 @@ def add_reminder(
         cursor.execute(
             """
             INSERT INTO reminders (title, description, reminder_time)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
+            RETURNING id
             """,
             (title.strip(), description.strip(), reminder_time.strip())
         )
 
-        reminder_id = cursor.lastrowid
+        reminder_id = cursor.fetchone()["id"]
         connection.commit()
 
         return f"Reminder saved successfully! Reminder ID: {reminder_id}"
@@ -657,11 +630,11 @@ def get_reminders() -> str:
 
         for reminder in reminders:
             result += (
-                f"Reminder ID: {reminder[0]}\n"
-                f"Title: {reminder[1]}\n"
-                f"Description: {reminder[2]}\n"
-                f"Reminder Time: {reminder[3]}\n"
-                f"Status: {reminder[4]}\n"
+                f"Reminder ID: {reminder['id']}\n"
+                f"Title: {reminder['title']}\n"
+                f"Description: {reminder['description']}\n"
+                f"Reminder Time: {reminder['reminder_time']}\n"
+                f"Status: {reminder['status']}\n"
                 "-------------------------\n"
             )
 
@@ -704,8 +677,8 @@ def update_reminder(
         cursor.execute(
             """
             UPDATE reminders
-            SET title = ?, description = ?, reminder_time = ?
-            WHERE id = ?
+            SET title = %s, description = %s, reminder_time = %s
+            WHERE id = %s
             """,
             (title.strip(), description.strip(), reminder_time.strip(), reminder_id)
         )
@@ -755,7 +728,7 @@ def delete_reminder(reminder_id: int) -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "DELETE FROM reminders WHERE id = ?",
+            "DELETE FROM reminders WHERE id = %s",
             (reminder_id,)
         )
 
@@ -829,7 +802,7 @@ def update_reminder_status(reminder_id: int, status: str) -> str:
         cursor = connection.cursor()
 
         cursor.execute(
-            "UPDATE reminders SET status = ? WHERE id = ?",
+            "UPDATE reminders SET status = %s WHERE id = %s",
             (status, reminder_id)
         )
 

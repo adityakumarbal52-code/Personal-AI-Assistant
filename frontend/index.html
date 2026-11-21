@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal AI Assistant</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="logo">🤖 <span>My Assistant</span></div>
+
+            <p class="menu-heading">MAIN MENU</p>
+
+            <nav class="navigation">
+                <a href="#" class="nav-link active" data-view="dashboardView">🏠 Dashboard</a>
+                <a href="#" class="nav-link" data-view="tasksView">📋 Tasks</a>
+                <a href="#" class="nav-link" data-view="notesView">📝 Notes</a>
+                <a href="#" class="nav-link" data-view="remindersView">⏰ Reminders</a>
+                <a href="#" class="nav-link" data-view="aiView">🤖 AI Assistant</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <h4>Personal AI Assistant</h4>
+                <p>Powered by Google Gemini</p>
+            </div>
+
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <canvas id="threeBackground"></canvas>
+
+            <!-- DASHBOARD VIEW -->
+            <section class="app-view" id="dashboardView">
+
+                <header class="topbar">
+                    <div>
+                        <h1>Dashboard</h1>
+                        <p>Welcome back! Manage your daily activities.</p>
+                    </div>
+
+
+                    <div class="topbar-actions">
+
+                        <button type="button" id="themeToggle" class="theme-toggle">
+                            <span id="themeIcon">☀️</span>
+                            <span id="themeText">Light Mode</span>
+                        </button>
+
+                        <div class="profile">
+                            <div class="profile-icon">A</div>
+                            <span>My Workspace</span>
+                        </div>
+
+                    </div>
+
+                </header>
+
+                <section class="overview-section">
+                    <h2>Overview</h2>
+
+                    <div class="cards">
+
+                        <div class="card task-card">
+                            <div class="card-icon">📋</div>
+                            <h3>Total Tasks</h3>
+                            <h2 id="totalTasks">--</h2>
+                            <p>Your saved tasks</p>
+                        </div>
+
+                        <div class="card note-card">
+                            <div class="card-icon">📝</div>
+                            <h3>Total Notes</h3>
+                            <h2 id="totalNotes">--</h2>
+                            <p>Your saved notes</p>
+                        </div>
+
+                        <div class="card reminder-card">
+                            <div class="card-icon">⏰</div>
+                            <h3>Total Reminders</h3>
+                            <h2 id="totalReminders">--</h2>
+                            <p>Your saved reminders</p>
+                        </div>
+
+                        <div class="card ai-card">
+                            <div class="card-icon">🤖</div>
+                            <h3>AI Assistant</h3>
+                            <h2>Ready</h2>
+                            <p>Powered by Gemini</p>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section class="quick-section">
+                    <h2>Quick Access</h2>
+
+                    <div class="quick-cards">
+
+                        <div class="quick-card">
+                            <h3>📋 Manage Tasks</h3>
+                            <p>Create, update and track your tasks.</p>
+                            <button type="button" data-go="tasksView">Open Tasks</button>
+                        </div>
+
+                        <div class="quick-card">
+                            <h3>📝 Manage Notes</h3>
+                            <p>Save and organize your important notes.</p>
+                            <button type="button" data-go="notesView">Open Notes</button>
+                        </div>
+
+                        <div class="quick-card">
+                            <h3>⏰ Manage Reminders</h3>
+                            <p>Keep track of your important activities.</p>
+                            <button type="button" data-go="remindersView">Open Reminders</button>
+                        </div>
+
+                    </div>
+                </section>
+
+            </section>
+
+            <!-- TASKS VIEW -->
+            <section class="app-view" id="tasksView" hidden>
+
+                <header class="topbar">
+                    <div>
+                        <h1>Task Manager</h1>
+                        <p>Create and manage your daily tasks.</p>
+                    </div>
+                </header>
+
+                <div class="management-panel">
+                    <h2 id="taskFormHeading">Add New Task</h2>
+
+                    <form id="taskForm">
+                        <input type="hidden" id="taskId">
+
+                        <label for="taskTitle">Task Title</label>
+                        <input type="text" id="taskTitle" placeholder="Enter task title" required>
+
+                        <label for="taskDescription">Description</label>
+                        <textarea id="taskDescription" placeholder="Enter task description"></textarea>
+
+                        <button type="submit" id="taskSubmitButton">Add Task</button>
+                        <button type="button" id="cancelTaskEdit" hidden>Cancel Edit</button>
+                    </form>
+                </div>
+
+                <div class="management-panel">
+                    <h2>Your Tasks</h2>
+                    <div id="taskList" class="record-list">Loading tasks...</div>
+                </div>
+
+            </section>
+
+            <!-- NOTES VIEW -->
+            <section class="app-view" id="notesView" hidden>
+
+                <header class="topbar">
+                    <div>
+                        <h1>Notes Manager</h1>
+                        <p>Save and organize your important notes.</p>
+                    </div>
+                </header>
+
+                <div class="management-panel">
+                    <h2 id="noteFormHeading">Create New Note</h2>
+
+                    <form id="noteForm">
+                        <input type="hidden" id="noteId">
+
+                        <label for="noteTitle">Note Title</label>
+                        <input type="text" id="noteTitle" placeholder="Enter note title" required>
+
+                        <label for="noteContent">Note Content</label>
+                        <textarea id="noteContent" placeholder="Write your note..." required></textarea>
+
+                        <button type="submit" id="noteSubmitButton">Save Note</button>
+                        <button type="button" id="cancelNoteEdit" hidden>Cancel Edit</button>
+                    </form>
+                </div>
+
+                <div class="management-panel">
+                    <h2>Your Notes</h2>
+                    <div id="noteList" class="record-list">Loading notes...</div>
+                </div>
+
+            </section>
+
+            <!-- REMINDERS VIEW -->
+            <section class="app-view" id="remindersView" hidden>
+
+                <header class="topbar">
+                    <div>
+                        <h1>Reminder Manager</h1>
+                        <p>Organize your important activities.</p>
+                    </div>
+                </header>
+
+                <div class="management-panel">
+                    <h2 id="reminderFormHeading">Create New Reminder</h2>
+                    <button type="button" id="enableNotifications" class="primary-button">
+                        🔔 Enable Notifications
+                    </button>
+
+                    <form id="reminderForm">
+                        <input type="hidden" id="reminderId">
+
+                        <label for="reminderTitle">Reminder Title</label>
+                        <input type="text" id="reminderTitle" placeholder="Enter reminder title" required>
+
+                        <label for="reminderDescription">Description</label>
+                        <textarea id="reminderDescription" placeholder="Enter description"></textarea>
+
+                        <label for="reminderTime">Reminder Date and Time</label>
+                        <input type="datetime-local" id="reminderTime" required>
+
+                        <button type="submit" id="reminderSubmitButton">Save Reminder</button>
+                        <button type="button" id="cancelReminderEdit" hidden>Cancel Edit</button>
+                    </form>
+                </div>
+
+                <div class="management-panel">
+                    <h2>Your Reminders</h2>
+                    <div id="reminderList" class="record-list">Loading reminders...</div>
+                </div>
+
+            </section>
+
+            <!-- AI ASSISTANT VIEW -->
+            <section class="app-view" id="aiView" hidden>
+
+                <header class="topbar">
+                    <div>
+                        <h1>AI Assistant</h1>
+                        <p>Chat with your intelligent personal assistant.</p>
+                    </div>
+                </header>
+
+                <div class="ai-box">
+
+                    <div class="ai-heading">
+                        <span>🤖</span>
+                        <div>
+                            <h3>Gemini AI</h3>
+                            <p>Your intelligent personal assistant</p>
+                        </div>
+                    </div>
+
+                    <div class="chat-area" id="chatArea" aria-live="polite">
+                        <p class="welcome-message">
+                            Hello! How can I help you today?
+                        </p>
+                    </div>
+
+                    <form class="chat-input" id="chatForm">
+                        <input type="text" id="chatMessage" placeholder="Ask me anything..." autocomplete="off"
+                            required>
+                        <button type="submit" id="chatSendButton">Send ➤</button>
+                    </form>
+
+                </div>
+
+            </section>
+
+            <footer>
+                Personal AI Assistant © 2026 | Built with Python and Gemini AI
+            </footer>
+
+        </main>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
